@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { PlusIcon, PencilIcon, StopIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
@@ -17,13 +17,7 @@ const Users = () => {
     role: 'team_member'
   });
 
-  useEffect(() => {
-    if (isAdmin) {
-      fetchUsers();
-    }
-  }, []);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/users`);
       setUsers(response.data.data);
@@ -32,7 +26,13 @@ const Users = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchUsers();
+    }
+  }, [isAdmin, fetchUsers]);
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
@@ -65,9 +65,7 @@ const Users = () => {
 
   const handleToggleStatus = async (userId, currentStatus) => {
     try {
-      const response = await axios.patch(
-        `${process.env.REACT_APP_API_URL}/users/${userId}/status`
-      );
+      await axios.patch(`${process.env.REACT_APP_API_URL}/users/${userId}/status`);
       setUsers(users.map(u => u.id === userId ? { ...u, is_active: !currentStatus } : u));
       toast.success(`User ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
     } catch (error) {
@@ -180,7 +178,6 @@ const Users = () => {
         </table>
       </div>
 
-      {/* Create/Edit User Modal */}
       {(showCreateModal || editingUser) && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">

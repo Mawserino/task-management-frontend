@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,11 +14,7 @@ const TaskDetail = () => {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({});
 
-  useEffect(() => {
-    fetchTask();
-  }, [id]);
-
-  const fetchTask = async () => {
+  const fetchTask = useCallback(async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/tasks/${id}`);
       setTask(response.data);
@@ -29,7 +25,11 @@ const TaskDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
+
+  useEffect(() => {
+    fetchTask();
+  }, [fetchTask]);
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -213,7 +213,6 @@ const TaskDetail = () => {
         </div>
       </div>
 
-      {/* Task History */}
       {task.histories && task.histories.length > 0 && (
         <div className="mt-8 bg-white shadow rounded-lg overflow-hidden">
           <div className="px-6 py-4 border-b">

@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 const Analytics = () => {
-  const { user, token, isManager, isAdmin } = useAuth();
+  const { token, isManager, isAdmin } = useAuth();
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -17,17 +17,7 @@ const Analytics = () => {
   const [exporting, setExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState('csv');
 
-  useEffect(() => {
-    fetchTeams();
-  }, []);
-
-  useEffect(() => {
-    if (selectedTeam || isAdmin) {
-      fetchAnalytics();
-    }
-  }, [selectedTeam]);
-
-  const fetchTeams = async () => {
+  const fetchTeams = useCallback(async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/teams`);
       setTeams(response.data.data);
@@ -37,9 +27,9 @@ const Analytics = () => {
     } catch (error) {
       console.error('Failed to fetch teams:', error);
     }
-  };
+  }, [isAdmin]);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       let url;
@@ -62,7 +52,17 @@ const Analytics = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdmin, selectedTeam, token]);
+
+  useEffect(() => {
+    fetchTeams();
+  }, [fetchTeams]);
+
+  useEffect(() => {
+    if (selectedTeam || isAdmin) {
+      fetchAnalytics();
+    }
+  }, [selectedTeam, isAdmin, fetchAnalytics]);
 
   const handleExport = async () => {
     if (!selectedTeam) {
@@ -85,7 +85,6 @@ const Analytics = () => {
         }
       );
       
-      // Create download link
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -155,7 +154,6 @@ const Analytics = () => {
         </div>
       </div>
 
-      {/* Team Selector */}
       {(isManager || isAdmin) && (
         <div className="bg-white rounded-lg shadow p-4 mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">Select Team</label>
@@ -172,7 +170,6 @@ const Analytics = () => {
         </div>
       )}
 
-      {/* Summary Cards */}
       {analytics?.summary && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
@@ -195,7 +192,6 @@ const Analytics = () => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {/* Status Distribution Chart */}
         {statusData.length > 0 && (
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Task Status Distribution</h2>
@@ -221,7 +217,6 @@ const Analytics = () => {
           </div>
         )}
 
-        {/* Priority Distribution Chart */}
         {priorityData.length > 0 && (
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Priority Distribution</h2>
@@ -238,7 +233,6 @@ const Analytics = () => {
         )}
       </div>
 
-      {/* User Performance Table */}
       {analytics?.user_performance && analytics.user_performance.length > 0 && (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="px-6 py-4 border-b">
@@ -263,26 +257,26 @@ const Analytics = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {analytics.user_performance.map((user, idx) => (
+                {analytics.user_performance.map((userPerf, idx) => (
                   <tr key={idx}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {user.name}
+                      {userPerf.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.total}
+                      {userPerf.total}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.completed}
+                      {userPerf.completed}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2 w-24">
                           <div
                             className="bg-green-600 rounded-full h-2"
-                            style={{ width: `${user.completion_rate}%` }}
+                            style={{ width: `${userPerf.completion_rate}%` }}
                           />
                         </div>
-                        <span className="text-sm text-gray-600">{user.completion_rate}%</span>
+                        <span className="text-sm text-gray-600">{userPerf.completion_rate}%</span>
                       </div>
                     </td>
                   </tr>

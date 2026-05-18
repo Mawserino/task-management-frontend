@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
-import { PlusIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const Tasks = () => {
-  const { user, token, isManager, isAdmin } = useAuth();
+  const { user, isManager, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +16,6 @@ const Tasks = () => {
     assigned_to: ''
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
   const [teams, setTeams] = useState([]);
   const [users, setUsers] = useState([]);
   const [formData, setFormData] = useState({
@@ -24,18 +23,11 @@ const Tasks = () => {
     description: '',
     priority: 'medium',
     assigned_to: '',
-    due_date: ''
+    due_date: '',
+    team_id: ''
   });
 
-  useEffect(() => {
-    fetchTasks();
-    fetchTeams();
-    if (isManager || isAdmin) {
-      fetchUsers();
-    }
-  }, [filters]);
-
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       const params = {};
       if (filters.status) params.status = filters.status;
@@ -49,25 +41,33 @@ const Tasks = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters.status, filters.priority, filters.assigned_to]);
 
-  const fetchTeams = async () => {
+  const fetchTeams = useCallback(async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/teams`);
       setTeams(response.data.data);
     } catch (error) {
       console.error('Failed to fetch teams:', error);
     }
-  };
+  }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/users`);
       setUsers(response.data.data);
     } catch (error) {
       console.error('Failed to fetch users:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchTasks();
+    fetchTeams();
+    if (isManager || isAdmin) {
+      fetchUsers();
+    }
+  }, [fetchTasks, fetchTeams, fetchUsers, isManager, isAdmin]);
 
   const handleCreateTask = async (e) => {
     e.preventDefault();
@@ -156,9 +156,8 @@ const Tasks = () => {
         )}
       </div>
 
-      {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <select
             className="border rounded-md px-3 py-2"
             value={filters.status}
@@ -181,23 +180,9 @@ const Tasks = () => {
             <option value="medium">Medium</option>
             <option value="high">High</option>
           </select>
-
-          {(isManager || isAdmin) && (
-            <select
-              className="border rounded-md px-3 py-2"
-              value={filters.assigned_to}
-              onChange={(e) => setFilters({ ...filters, assigned_to: e.target.value })}
-            >
-              <option value="">All Assignees</option>
-              {users.map(user => (
-                <option key={user.id} value={user.id}>{user.name}</option>
-              ))}
-            </select>
-          )}
         </div>
       </div>
 
-      {/* Tasks List */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="divide-y divide-gray-200">
           {tasks.length === 0 ? (
@@ -260,7 +245,6 @@ const Tasks = () => {
         </div>
       </div>
 
-      {/* Create Task Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">

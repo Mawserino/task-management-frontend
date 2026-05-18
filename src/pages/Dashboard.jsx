@@ -1,5 +1,4 @@
-// src/pages/Dashboard.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { 
@@ -22,20 +21,14 @@ const Dashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
-      // Fetch tasks
       const tasksResponse = await axios.get(`${process.env.REACT_APP_API_URL}/tasks`, {
         params: { per_page: 10 }
       });
       
       const tasks = tasksResponse.data.data;
       
-      // Calculate stats
       const total = tasks.length;
       const completed = tasks.filter(t => t.status === 'completed').length;
       const inProgress = tasks.filter(t => t.status === 'in_progress').length;
@@ -44,7 +37,6 @@ const Dashboard = () => {
       setStats({ total, completed, inProgress, pending });
       setRecentTasks(tasks.slice(0, 5));
       
-      // Fetch analytics if user is manager or admin
       if (isManager && user?.teams?.[0]) {
         const analyticsResponse = await axios.get(
           `${process.env.REACT_APP_NODE_SERVICE_URL}/api/analytics/team/${user.teams[0].id}`,
@@ -58,7 +50,11 @@ const Dashboard = () => {
       console.error('Failed to fetch dashboard data:', error);
       setLoading(false);
     }
-  };
+  }, [isManager, token, user?.teams]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const statsCards = [
     { name: 'Total Tasks', value: stats.total, icon: ClipboardDocumentListIcon, color: 'bg-blue-500' },
@@ -84,7 +80,6 @@ const Dashboard = () => {
         <p className="text-gray-600">Here's what's happening with your tasks today.</p>
       </div>
       
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         {statsCards.map((stat) => (
           <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg">
@@ -107,7 +102,6 @@ const Dashboard = () => {
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Tasks */}
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Tasks</h2>
           <div className="space-y-4">
@@ -131,8 +125,7 @@ const Dashboard = () => {
           </div>
         </div>
         
-        {/* Analytics Chart */}
-        {analytics && (
+        {analytics && chartData.length > 0 && (
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Team Performance</h2>
             <ResponsiveContainer width="100%" height={300}>
