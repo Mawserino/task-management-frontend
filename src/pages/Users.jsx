@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
-import { PlusIcon, PencilIcon, BanIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, StopIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 const Users = () => {
@@ -170,7 +170,7 @@ const Users = () => {
                       onClick={() => handleToggleStatus(userItem.id, userItem.is_active)}
                       className={userItem.is_active ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}
                     >
-                      {userItem.is_active ? <BanIcon className="h-5 w-5" /> : <CheckCircleIcon className="h-5 w-5" />}
+                      {userItem.is_active ? <StopIcon className="h-5 w-5" /> : <CheckCircleIcon className="h-5 w-5" />}
                     </button>
                   )}
                 </td>
