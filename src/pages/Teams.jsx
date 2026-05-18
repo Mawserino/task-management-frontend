@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { PlusIcon, UserPlusIcon, UserMinusIcon } from '@heroicons/react/24/outline';
@@ -17,14 +17,7 @@ const Teams = () => {
     user_id: ''
   });
 
-  useEffect(() => {
-    fetchTeams();
-    if (isAdmin || isManager) {
-      fetchUsers();
-    }
-  }, []);
-
-  const fetchTeams = async () => {
+  const fetchTeams = useCallback(async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/teams`);
       setTeams(response.data.data);
@@ -33,16 +26,23 @@ const Teams = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/users`);
       setUsers(response.data.data);
     } catch (error) {
       console.error('Failed to fetch users:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchTeams();
+    if (isAdmin || isManager) {
+      fetchUsers();
+    }
+  }, [fetchTeams, fetchUsers, isAdmin, isManager]);
 
   const handleCreateTeam = async (e) => {
     e.preventDefault();
@@ -52,7 +52,7 @@ const Teams = () => {
       });
       setTeams([...teams, response.data]);
       setShowCreateModal(false);
-      setFormData({ name: '' });
+      setFormData({ name: '', user_id: '' });
       toast.success('Team created successfully');
     } catch (error) {
       toast.error('Failed to create team');
@@ -68,7 +68,7 @@ const Teams = () => {
       );
       await fetchTeams();
       setShowAddMemberModal(false);
-      setFormData({ user_id: '' });
+      setFormData({ name: '', user_id: '' });
       toast.success('Member added successfully');
     } catch (error) {
       toast.error('Failed to add member');
@@ -167,7 +167,6 @@ const Teams = () => {
         ))}
       </div>
 
-      {/* Create Team Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
@@ -211,7 +210,6 @@ const Teams = () => {
         </div>
       )}
 
-      {/* Add Member Modal */}
       {showAddMemberModal && selectedTeam && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
